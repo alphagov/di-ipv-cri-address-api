@@ -7,6 +7,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.nimbusds.oauth2.sdk.OAuth2Error;
 import org.apache.logging.log4j.Level;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -105,11 +106,16 @@ public class AddressHandler
         } catch (SessionNotFoundException | SessionExpiredException e) {
             eventProbe.log(Level.ERROR, e).counterMetric(LAMBDA_NAME, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
-                    HttpStatusCode.BAD_REQUEST, e.getMessage());
+                    OAuth2Error.INVALID_REQUEST.getHTTPStatusCode(),
+                    OAuth2Error.INVALID_REQUEST
+                        .appendDescription(" - " + e.getMessage())
+                        .toJSONObject());
         } catch (AddressProcessingException | SqsException e) {
             eventProbe.log(Level.ERROR, e).counterMetric(LAMBDA_NAME, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR, e.getMessage());
-        }
+                    OAuth2Error.SERVER_ERROR.getHTTPStatusCode(),
+                    OAuth2Error.SERVER_ERROR
+                            .appendDescription(" - " + e.getMessage())
+                            .toJSONObject());        }
     }
 }

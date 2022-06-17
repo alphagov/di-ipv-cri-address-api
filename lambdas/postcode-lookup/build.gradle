@@ -8,7 +8,8 @@ dependencies {
 	implementation project(":common-lib"),
 			configurations.aws,
 			configurations.lambda,
-			configurations.gson
+			configurations.gson,
+			configurations.nimbus
 
 	aspect configurations.powertools
 

@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.nimbusds.oauth2.sdk.OAuth2Error;
 import org.apache.logging.log4j.Level;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
@@ -67,15 +68,31 @@ public class PostcodeLookupHandler
         } catch (PostcodeLookupValidationException e) {
             eventProbe.log(Level.ERROR, e).counterMetric(LAMBDA_NAME, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
-                    HttpStatusCode.BAD_REQUEST, ErrorResponse.INVALID_POSTCODE);
-        } catch (SessionExpiredException | SessionNotFoundException e) {
+                    OAuth2Error.INVALID_REQUEST.getHTTPStatusCode(),
+                    OAuth2Error.INVALID_REQUEST
+                            .appendDescription(" - " + ErrorResponse.INVALID_POSTCODE)
+                            .toJSONObject());
+        } catch (SessionExpiredException e) {
             eventProbe.log(Level.ERROR, e).counterMetric(LAMBDA_NAME, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
-                    HttpStatusCode.BAD_REQUEST, e.getMessage());
+                    OAuth2Error.ACCESS_DENIED.getHTTPStatusCode(),
+                    OAuth2Error.ACCESS_DENIED
+                            .appendDescription(" - " + ErrorResponse.SESSION_EXPIRED)
+                            .toJSONObject());
+        } catch (SessionNotFoundException e) {
+            eventProbe.log(Level.ERROR, e).counterMetric(LAMBDA_NAME, 0d);
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    OAuth2Error.ACCESS_DENIED.getHTTPStatusCode(),
+                    OAuth2Error.ACCESS_DENIED
+                            .appendDescription(" - " + ErrorResponse.SESSION_NOT_FOUND)
+                            .toJSONObject());
         } catch (Exception e) {
             eventProbe.log(Level.ERROR, e).counterMetric(LAMBDA_NAME, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR, ErrorResponse.SERVER_ERROR);
+                    OAuth2Error.SERVER_ERROR.getHTTPStatusCode(),
+                    OAuth2Error.SERVER_ERROR
+                            .appendDescription(" - " + e.getMessage())
+                            .toJSONObject());
         }
     }
 }
