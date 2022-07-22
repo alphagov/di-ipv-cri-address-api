@@ -74,6 +74,9 @@ public class AddressHandler
             if (!addresses.isEmpty()) {
                 SessionItem session = sessionService.validateSessionId(sessionId);
 
+                // Links validUntil in the PREVIOUS address to validFrom in the CURRENT
+                AddressDateLinker.linkCurrentAndPreviousAddressesDates(addresses);
+
                 // Save our addresses to the address table
                 addressService.saveAddresses(UUID.fromString(sessionId), addresses);
 
